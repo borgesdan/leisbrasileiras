@@ -1,15 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace LawLibrary
+﻿namespace LawLibrary
 {
     /// <summary>
     /// Representa a análise da parte normativa da lei.
     /// </summary>
-    internal static class NormativePartParse
+    internal static class ObjectParserNormative
     {
         /// <summary>
         /// Executa a análise das palavras chaves e chama os métodos Add equivalentes do objeto parser.
