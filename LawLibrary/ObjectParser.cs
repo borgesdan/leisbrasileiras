@@ -20,9 +20,6 @@ namespace LawLibrary
 
         readonly string textFile;
         readonly Law law = new();
-        //bool isPreliminaryPart = false;
-        //bool isNomartivePart = false;
-        //bool isfinalPart = false;
         LawPartType currentLawPartType = LawPartType.Preliminar;
         LawContentType prelimaryContentType = LawContentType.Texto;
 
@@ -402,69 +399,14 @@ namespace LawLibrary
             switch (saveType)
             {
                 case ObjectParserSaveType.Text:
-                    SaveAsText(outputFile, indent);
+                    ObjectParserText.Save(this, outputFile, indent);
                     break;
                 case ObjectParserSaveType.Xml:
                     ObjectParserXml.Save(this, outputFile, indent);
                     break;
             }
         }       
-
-        private void SaveAsText(string outputFile, bool indent)
-        {
-            List<string> lines = new();
-
-            for (int i = 0; i < law.PreliminaryPart.Count; i++)
-            {
-                lines.Add(law.PreliminaryPart[i].Text);
-            }
-
-            for (int i = 0; i < law.NormativePart.Count; i++)
-            {
-                lines.Add(law.NormativePart[i].Text);
-                SetLines(lines, law.NormativePart[i].SubContents, indent);
-            }
-
-            for (int i = 0; i < law.FinalPart.Count; i++)
-            {
-                lines.Add(law.FinalPart[i].Text);
-            }
-
-            File.AppendAllLines(outputFile, lines);
-        }
-
-        //Campos estáticos do método SetLines para melhor indentificação.
-        private static int indentationCount = 0;
-        private const char tabChar = '\t';
-
-        private static void SetLines(List<string> lines, List<LawText>? list, bool indentText)
-        {
-            if (list == null)
-                return;
-
-            indentationCount++;
-
-            foreach (LawText t in list)
-            {
-                if (indentText)
-                {
-                    lines.Add($"{new string(tabChar, indentationCount)}{t.Text}");
-                }
-                else
-                {
-                    lines.Add(t.Text);
-                }
-
-                if (t.SubContents != null && t.SubContents.Count > 0)
-                {
-                    SetLines(lines, t.SubContents, indentText);
-                }
-            }
-
-            indentationCount--;
-        }
-
-
+                
         /// <summary>
         /// Inicia a análise do texto e o converter em um objeto hierárquico de modo assíncrono.
         /// </summary>

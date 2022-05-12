@@ -2,8 +2,17 @@
 
 namespace LawLibrary
 {
+    /// <summary>
+    /// Representa a versão em XML de um objeto ObjectParser.
+    /// </summary>
     internal static class ObjectParserXml
     {
+        /// <summary>
+        /// Salva o objeto Law da classe ObjectParser em um arquivo Xml.
+        /// </summary>
+        /// <param name="parser">O objeto da classe ObjectParser.</param>
+        /// <param name="outputFile">O caminho do arquivo a ser salvo com a extensão xml.</param>
+        /// <param name="indent">True caso deseje que o Xml esteja indentado.</param>
         public static void Save(ObjectParser parser, string outputFile, bool indent)
         {
             using XmlWriter writer = XmlWriter.Create(outputFile, new XmlWriterSettings() { Indent = indent });
