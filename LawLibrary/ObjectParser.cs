@@ -23,7 +23,8 @@ namespace LawLibrary
         //bool isPreliminaryPart = false;
         //bool isNomartivePart = false;
         //bool isfinalPart = false;
-        LawPartType currentPartType = LawPartType.Preliminar;
+        LawPartType currentLawPartType = LawPartType.Preliminar;
+        LawContentType prelimaryContentType = LawContentType.Texto;
 
         LawText? currentParte = null;
         LawText? currentLivro = null;
@@ -350,165 +351,42 @@ namespace LawLibrary
                 if (line == null || string.IsNullOrWhiteSpace(line))
                     continue;
 
-                line = line.Trim();
+                line = line.Trim();                
 
-                //Verifica se o texto se encontra na parte preeliminar e retorna true caso
-                //tenha encontrado alguma marcação de texto nesta parte e adicionado
-                //seu conteúdo no objeto law
-                var result = CheckPreliminaryPart(sr, ref line);
-
-                if (result)
-                    continue;
-
-                //Verifica se a linha contém a marcação NORMATIVA ou FINAL
-                if (line == TEXT_MARK_NORMATIVA)
+                switch (line)
                 {
-                    isNomartivePart = true;
-                    isfinalPart = false;
-                    continue;
+                    case TEXT_MARK_EPIGRAFE:
+                        currentLawPartType = LawPartType.Preliminar;
+                        prelimaryContentType = LawContentType.Epigrafe;
+                        continue;                        
+                    case TEXT_MARK_EMENTA:
+                        currentLawPartType = LawPartType.Preliminar;
+                        prelimaryContentType = LawContentType.Ementa;
+                        continue;
+                    case TEXT_MARK_PREAMBULO:
+                        currentLawPartType = LawPartType.Preliminar;
+                        prelimaryContentType = LawContentType.Preambulo;
+                        continue;
+                    case TEXT_MARK_NORMATIVA:
+                        currentLawPartType = LawPartType.Normativa;
+                        continue;
+                    case TEXT_MARK_FINAL:
+                        currentLawPartType = LawPartType.Final;
+                        continue;
                 }
-                else if (line == TEXT_MARK_FINAL)
+
+                switch (currentLawPartType)
                 {
-                    isNomartivePart = false;
-                    isfinalPart = true;
-                    continue;
+                    case LawPartType.Preliminar:
+                        law.PreliminaryPart.Add(new LawText() { Text = line, ContentType = prelimaryContentType });
+                        break;
+                    case LawPartType.Normativa:
+                        NormativePartParse.Parse(ref line, this);
+                        break;
+                    case LawPartType.Final:
+                        law.FinalPart.Add(new LawText() { Text = line, ContentType = LawContentType.Texto });
+                        break;
                 }
-
-                if (isNomartivePart)
-                {
-                    //ParseNormativePart(ref line);
-                    NormativePartParse.Parse(ref line, this);
-
-                }
-                else if (isfinalPart)
-                {
-                    law.FinalPart.Add(new LawText() { Text = line, ContentType = LawContentType.Texto });
-                }
-                else
-                {
-                    law.PreliminaryPart.Add(new LawText() { Text = line, ContentType = LawContentType.Texto });
-                }
-            }
-        }
-
-        //private bool CheckPreliminaryPart(StreamReader sr, ref string? line)
-        //{
-        //    LawContentType contentType;
-
-        //    switch (line)
-        //    {
-        //        case TEXT_MARK_EPIGRAFE:
-        //            contentType = LawContentType.Epigrafe;
-        //            break;
-        //        case TEXT_MARK_EMENTA:
-        //            contentType = LawContentType.Ementa;
-        //            break;
-        //        case TEXT_MARK_PREAMBULO:
-        //            contentType = LawContentType.Preambulo;
-        //            break;
-        //        default:
-        //            return false;
-        //    }
-
-        //    line = sr.ReadLine();
-
-        //    if (line != null || !string.IsNullOrWhiteSpace(line))
-        //    {
-        //        line = line.Trim();
-        //        law.PreliminaryPart.Add(new LawText() { Text = line, ContentType = contentType });
-        //        return true;
-        //    }
-
-        //    return false;
-        //}
-
-        private void CheckPreliminaryPart(StreamReader sr, ref string? line)
-        {
-            LawContentType contentType;
-
-            switch (line)
-            {
-                case TEXT_MARK_EPIGRAFE:
-                    contentType = LawContentType.Epigrafe;
-                    break;
-                case TEXT_MARK_EMENTA:
-                    contentType = LawContentType.Ementa;
-                    break;
-                case TEXT_MARK_PREAMBULO:
-                    contentType = LawContentType.Preambulo;
-                    break;
-                default:
-                    return;
-            }
-
-            line = sr.ReadLine();
-
-            if (line != null || !string.IsNullOrWhiteSpace(line))
-            {
-                line = line.Trim();
-                law.PreliminaryPart.Add(new LawText() { Text = line, ContentType = contentType });
-            }
-        }
-
-        private void ParseNormativePart(ref string? line)
-        {
-            if (line == null)
-                return;
-
-            if (line.StartsWith("Art."))
-            {
-                AddArtigo(ref line);
-            }
-            else if (line.StartsWith("Parágrafo") || line.StartsWith("§"))
-            {
-                AddParagrafo(ref line);
-            }
-            else if (line.StartsWith("I") || line.StartsWith("V") || line.StartsWith("X") || line.StartsWith("L"))
-            {
-                var split = line.Split(" ");
-
-                if (split[1] == "-")
-                {
-                    AddInciso(ref line);
-                }
-            }
-            else if (line.StartsWith("Título"))
-            {
-                AddTitulo(ref line);
-            }
-            else if (line.StartsWith("Capítulo"))
-            {
-                AddCapitulo(ref line);
-            }
-            else if (line.StartsWith("Seção"))
-            {
-                AddSecao(ref line);
-            }
-            else if (line.StartsWith("Subseção"))
-            {
-                AddSubSecao(ref line);
-            }
-            else if (line.StartsWith("Livro"))
-            {
-                AddLivro(ref line);
-            }
-            else if (line.StartsWith("Parte"))
-            {
-                AddParte(ref line);
-            }
-            else if (line.StartsWith("a)") || line.StartsWith("b)") || line.StartsWith("c)") || line.StartsWith("d)")
-                || line.StartsWith("e)") || line.StartsWith("f)") || line.StartsWith("g)") || line.StartsWith("h)")
-                || line.StartsWith("i)") || line.StartsWith("j)") || line.StartsWith("k)") || line.StartsWith("l)")
-                || line.StartsWith("m)") || line.StartsWith("n)") || line.StartsWith("o)") || line.StartsWith("p)")
-                || line.StartsWith("q)") || line.StartsWith("r)") || line.StartsWith("s)") || line.StartsWith("t)")
-                || line.StartsWith("u)") || line.StartsWith("v)") || line.StartsWith("x)") || line.StartsWith("z)")
-                || line.StartsWith("y)") || line.StartsWith("w)"))
-            {
-                AddAlinea(ref line);
-            }
-            else
-            {
-                AddATexto(ref line);
             }
         }        
 
