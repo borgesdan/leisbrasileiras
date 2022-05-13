@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
-
-namespace LawLibrary
+﻿namespace LawLibrary
 {
     /// <summary>
     /// Representa uma analisador do arquivo de texto que contém a lei e converte em um objeto com formato hierárquico.
     /// </summary>
-    public class ObjectParser
+    public class LawParser
     {
         const string TEXT_MARK_EPIGRAFE = "[__EPIGRAFRE__]";
         const string TEXT_MARK_EMENTA = "[__EMENTA__]";
@@ -18,8 +11,8 @@ namespace LawLibrary
         const string TEXT_MARK_NORMATIVA = "[__NORMATIVA__]";
         const string TEXT_MARK_FINAL = "[__FINAL__]";
 
-        readonly string textFile;
-        readonly Law law = new();
+        string textFile = string.Empty;
+        Law law = new();
         LawPartType currentLawPartType = LawPartType.Preliminar;
         LawContentType prelimaryContentType = LawContentType.Texto;
 
@@ -36,13 +29,23 @@ namespace LawLibrary
         /// <summary>
         /// Obtém o objeto a conter os textos da lei em formato hierárquico.
         /// </summary>
-        public Law Law { get => law; }
+        public Law Law { get => law; private set => law = value; }
+
+        /// <summary>
+        /// Obtém ou define o arquivo de texto que contém os textos da lei e suas configurações.
+        /// </summary>
+        public string TextFile { get => textFile; private set => textFile = value; }
+
+        /// <summary>
+        /// Inicializa uma nova instância da classe.
+        /// </summary>
+        private LawParser() { }
 
         /// <summary>
         /// Inicializar uma nova instância da classe.
         /// </summary>
         /// <param name="file">Define o arquivo de texto configurado para análise.</param>
-        public ObjectParser(string file)
+        public LawParser(string file)
         {
             this.textFile = file;
         }
@@ -335,10 +338,15 @@ namespace LawLibrary
         }
 
         /// <summary>
-        /// Inicia a análise do texto e o converte em um objeto hierárquico.
+        /// Inicia a análise do texto e o converte em um objeto hierárquico. Retorna true caso bem sucedido.
         /// </summary>
-        public void Parse()
+        public bool Parse()
         {
+            if (textFile == null 
+                || string.IsNullOrWhiteSpace(textFile) 
+                || !File.Exists(textFile))
+                return false;
+
             using StreamReader sr = new(textFile);
 
             while (!sr.EndOfStream)
@@ -379,13 +387,15 @@ namespace LawLibrary
                         prelimaryContentType = LawContentType.Texto;
                         break;
                     case LawPartType.Normativa:
-                        ObjectParserNormative.Parse(ref line, this);
+                        LawParserNormativePart.Parse(ref line, this);
                         break;
                     case LawPartType.Final:
                         law.FinalPart.Add(new LawText() { Text = line, ContentType = LawContentType.Texto });
                         break;
                 }
             }
+
+            return true;
         }        
 
         /// <summary>
@@ -394,19 +404,58 @@ namespace LawLibrary
         /// <param name="saveType">O mtipo de arquivo desejado.</param>
         /// <param name="outputFile">O caminho do arquivo a ser criado.</param>
         /// <param name="indent">Defina TRUE caso o texto deva estar indentado.</param>
-        public void Save(ObjectParserSaveType saveType, string outputFile, bool indent)
+        public void Save(LawParserSaveType saveType, string outputFile, bool indent = true)
         {
             switch (saveType)
             {
-                case ObjectParserSaveType.Text:
-                    ObjectParserText.Save(this, outputFile, indent);
+                case LawParserSaveType.Text:
+                    LawParserText.Save(this, outputFile, indent);
                     break;
-                case ObjectParserSaveType.Xml:
-                    ObjectParserXml.Save(this, outputFile, indent);
+                case LawParserSaveType.Xml:
+                    LawParserXml.Save(this, outputFile, indent);
+                    break;
+                case LawParserSaveType.Json:
+                    LawParserJson.Save(this, outputFile, indent);
                     break;
             }
-        }       
-                
+        }
+
+        /// <summary>
+        /// Carrega e converte um arquivo salvo pelo método Save desta classe.
+        /// </summary>
+        /// <param name="fileType"></param>
+        /// <param name="outputFile"></param>
+        /// <returns></returns>
+        public static LawParser? Load(LawParserSaveType fileType, string outputFile)
+        {
+            switch (fileType)
+            {
+                case LawParserSaveType.Json:
+                    LawParser parser = new LawParser();
+                    parser.Law = LawParserJson.Load(outputFile) ?? new Law();
+                    return parser;
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>
+        /// Carrega e converte um arquivo salvo pelo método Save desta classe.
+        /// </summary>
+        /// <param name="fileType"></param>
+        /// <param name="outputFile"></param>
+        /// <returns></returns>
+        public static async Task<LawParser?> LoadAsync(LawParserSaveType fileType, string outputFile)
+        {
+            switch (fileType)
+            {
+                case LawParserSaveType.Json:
+                    return new LawParser() { Law = await LawParserJson.LoadAsync(outputFile) ?? new Law() };
+                default:
+                    return null;
+            }
+        }
+
         /// <summary>
         /// Inicia a análise do texto e o converter em um objeto hierárquico de modo assíncrono.
         /// </summary>
@@ -422,7 +471,7 @@ namespace LawLibrary
         /// <param name="saveType">O mtipo de arquivo desejado.</param>
         /// <param name="outputFile">O caminho do arquivo a ser criado.</param>
         /// <param name="indent">Defina TRUE caso o texto deva estar indentado.</param>
-        public async Task SaveAsync(ObjectParserSaveType saveType, string outputFile, bool indent)
+        public async Task SaveAsync(LawParserSaveType saveType, string outputFile, bool indent)
         {
             await Task.Run(() => { Save(saveType, outputFile, indent); });
         }

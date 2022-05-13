@@ -3,7 +3,7 @@
     /// <summary>
     /// Representa o objeto Law em formato texto.
     /// </summary>
-    internal static class ObjectParserText
+    internal static class LawParserText
     {
         private static int indentationCount = 0;
         private const char tabChar = '\t';
@@ -14,7 +14,7 @@
         /// <param name="parser">O objeto da classe ObjectParser.</param>
         /// <param name="outputFile">O caminho completo do arquivo de texto a ser salvo.</param>
         /// <param name="indent">Define se o texto será indentado.</param>
-        public static void Save(ObjectParser parser, string outputFile, bool indent)
+        public static void Save(LawParser parser, string outputFile, bool indent)
         {
             List<string> lines = new();
             Law law = parser.Law;
@@ -27,7 +27,7 @@
             for (int i = 0; i < law.NormativePart.Count; i++)
             {
                 lines.Add(law.NormativePart[i].Text);
-                SetLines(lines, law.NormativePart[i].SubContents, indent);
+                SetLines(lines, law.NormativePart[i].Contents, indent);
             }
 
             for (int i = 0; i < law.FinalPart.Count; i++)
@@ -58,9 +58,9 @@
                     lines.Add(t.Text);
                 }
 
-                if (t.SubContents != null && t.SubContents.Count > 0)
+                if (t.Contents != null && t.Contents.Count > 0)
                 {
-                    SetLines(lines, t.SubContents, indentText);
+                    SetLines(lines, t.Contents, indentText);
                 }
             }
 

@@ -3,14 +3,14 @@
     /// <summary>
     /// Representa a análise da parte normativa da lei.
     /// </summary>
-    internal static class ObjectParserNormative
+    internal static class LawParserNormativePart
     {
         /// <summary>
         /// Executa a análise das palavras chaves e chama os métodos Add equivalentes do objeto parser.
         /// </summary>
         /// <param name="line">A linha a ser análisada.</param>
         /// <param name="parser">O objeto da classe ObjectParser.</param>
-        public static void Parse(ref string? line, ObjectParser parser)
+        public static void Parse(ref string? line, LawParser parser)
         {
             if (line == null)
                 return;

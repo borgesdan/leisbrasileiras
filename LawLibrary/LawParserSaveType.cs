@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 
 namespace LawLibrary
 {
-    public enum ObjectParserSaveType
+    public enum LawParserSaveType
     {
         Text,
         Xml,
+        Json
     }
 }

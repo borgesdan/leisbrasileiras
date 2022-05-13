@@ -3,9 +3,9 @@
 namespace LawLibrary
 {
     /// <summary>
-    /// Representa a versão em XML de um objeto ObjectParser.
+    /// Representa o objeto Law em formato Xml.
     /// </summary>
-    internal static class ObjectParserXml
+    internal static class LawParserXml
     {
         /// <summary>
         /// Salva o objeto Law da classe ObjectParser em um arquivo Xml.
@@ -13,7 +13,7 @@ namespace LawLibrary
         /// <param name="parser">O objeto da classe ObjectParser.</param>
         /// <param name="outputFile">O caminho do arquivo a ser salvo com a extensão xml.</param>
         /// <param name="indent">True caso deseje que o Xml esteja indentado.</param>
-        public static void Save(ObjectParser parser, string outputFile, bool indent)
+        public static void Save(LawParser parser, string outputFile, bool indent)
         {
             using XmlWriter writer = XmlWriter.Create(outputFile, new XmlWriterSettings() { Indent = indent });
             Law law = parser.Law;
@@ -68,9 +68,9 @@ namespace LawLibrary
                 writer.WriteStartElement(GetTag(t.Text));
                 writer.WriteElementString("valor", t.Text);
 
-                if (t.SubContents != null && t.SubContents.Count > 0)
+                if (t.Contents != null && t.Contents.Count > 0)
                 {
-                    SetXmlElementList(writer, t.SubContents);
+                    SetXmlElementList(writer, t.Contents);
                 }
 
                 writer.WriteEndElement();
