@@ -11,6 +11,7 @@ namespace LawLibrary
     /// </summary>
     public class Law
     {
+        public LawStats Stats { get; set; } = new LawStats();
         public List<LawText> PreliminaryPart { get; set; } = new();
         public List<LawText> NormativePart { get; set; } = new();
         public List<LawText> FinalPart { get; set; } = new();

@@ -32,27 +32,27 @@
                     parser.AddInciso(ref line);
                 }
             }
-            else if (line.StartsWith("Título"))
+            else if (line.StartsWith("Título") || line.StartsWith("TÍTULO"))
             {
                 parser.AddTitulo(ref line);
             }
-            else if (line.StartsWith("Capítulo"))
+            else if (line.StartsWith("Capítulo") || line.StartsWith("CAPÍTULO"))
             {
                 parser.AddCapitulo(ref line);
             }
-            else if (line.StartsWith("Seção"))
+            else if (line.StartsWith("Seção") || line.StartsWith("SEÇÃO"))
             {
                 parser.AddSecao(ref line);
             }
-            else if (line.StartsWith("Subseção"))
+            else if (line.StartsWith("Subseção") || line.StartsWith("SUBSEÇÃO"))
             {
                 parser.AddSubSecao(ref line);
             }
-            else if (line.StartsWith("Livro"))
+            else if (line.StartsWith("Livro") || line.StartsWith("LIVRO"))
             {
                 parser.AddLivro(ref line);
             }
-            else if (line.StartsWith("Parte"))
+            else if (line.StartsWith("Parte") || line.StartsWith("PARTE"))
             {
                 parser.AddParte(ref line);
             }

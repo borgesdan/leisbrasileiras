@@ -1,37 +1,34 @@
 ﻿using LawLibrary;
-string filePath = @"C:\Users\Danilo\Desktop\leis\8112-90.txt";
-//XmlTextParser textParser = new XmlTextParser(filePath);
-//textParser.Read();
 
-LawParser parser = new LawParser(filePath);
-await parser.ParseAsync();
-//await parser.SaveAsync(ObjectParserSaveType.Xml, @"D:\file.xml", true);
-//await parser.SaveAsync(ObjectParserSaveType.Text, @"D:\file.txt", true);
-await parser.SaveAsync(LawParserSaveType.Json, @"D:\file.json", true);
 
-var p = LawParser.Load(LawParserSaveType.Json, @"D:\file.json");
-
-if (parser != null)
+while (true)
 {
-    //foreach (var item in p.Law.NormativePart)
-    //{
-    //    item.GetAll(LawContentType.Capitulo);
-    //}
+    string? path;
+    Console.Write("Digite o caminho do arquivo de lei desejado para análise: ");
+    path = Console.ReadLine();
 
-    //var list = p.Law.NormativePart[1].GetAll(LawContentType.Capitulo);
-
-    //foreach (var item in list)
-    //{
-    //    Console.WriteLine(item.Text);
-    //}
-
-    List<LawText> lawTexts = new List<LawText>();
-
-    foreach(var item in parser.Law.NormativePart)
+    if (path == null || !File.Exists(path))
     {
-        var list = item.GetAll(LawContentType.Capitulo);
-
-        if(list.Any())
-            lawTexts.AddRange(list);
+        Console.WriteLine("O caminho específicado não é válido.");
+        Console.ReadKey();
+        Console.Clear();
+        continue;
     }
+
+    LawParser parser = new LawParser(path);
+    await parser.ParseAsync();
+
+    Console.Write("O arquivo foi análisado, digite o caminho para salvar: ");
+    string? savePath = Console.ReadLine();
+
+    if (savePath == null)
+    {
+        Console.WriteLine("O caminho específicado não é válido.");
+        Console.ReadKey();
+        Console.Clear();
+        continue;
+    }
+
+    parser.Save(LawParserSaveType.Json, savePath);
+    break;
 }

@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using FileIO = System.IO.File;
+﻿using LawLibrary;
+using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using LawLibrary;
+using FileIO = System.IO.File;
 
 namespace LeisBrasileirasAPI.Controllers
 {
@@ -10,34 +9,105 @@ namespace LeisBrasileirasAPI.Controllers
     [Route("[controller]")]
     public class LeiController : Controller
     {
-        readonly string filesPath = "Files\\Leis";
-
-        /// <summary>Obtém o objeto LawParser ao informar o número da lei.</summary>
-        async Task<LawParser?> Parse(int leiNumero)
+        readonly string[] specialKeys = new string[1]
         {
-            string fileName = $"{filesPath}\\{leiNumero}.json";
+            "constituicao",
+        };
+
+        readonly string filesPath = "Files\\Leis";
+        readonly string currentConstituicao = "constituicao88";
+
+        // Obtém o objeto LawParser ao informar o número da lei.
+        async Task<LawParser?> Parse(string lei)
+        {
+            CheckKey(ref lei);
+
+            string fileName = $"{filesPath}\\{lei}.json";
             return await LawParser.LoadAsync(LawParserSaveType.Json, fileName);
         }
 
-        /// <summary>Obtém todas as ocorrências do tipo especifícado na parte normativa da lei.</summary>
-        async Task<ActionResult<IEnumerable<LawText>>> GetNormativeAll(int lei, LawContentType contentType)
+        //Obtém todas as ocorrências do tipo especifícado na parte normativa da lei.
+        async Task<IEnumerable<LawText>?> GetNormativeAll(string lei, LawContentType contentType)
         {
             var parser = await Parse(lei);
 
             if (parser == null)
             {
-                return NotFound();
+                return null;
             }
 
-            var list = parser.Law.NormativePart.Where(x => x.ContentType == contentType);
+            List<LawText> list = new();
+            foreach (var item in parser.Law.NormativePart)
+            {
+                if((int)item.ContentType > (int)contentType)
+                {
+                    continue;
+                }
 
-            return list.Any() ? Ok(list) : BadRequest();
+                // Se o primeiro item a ser procurado for do tipo específicado
+                // então deve-se adicioná-lo a lista e continuar o foreach.
+                // Já que um Capítulo não contém outro Capítulo, ou um Artigo não contém outro Artigo,
+                // não precisa então procurar no seu conteúdo.
+                if (item.ContentType == contentType)
+                {
+                    list.Add(item);
+                    continue;
+                }
+
+                var result = item.GetAll(contentType);
+
+                if (result.Any())
+                {
+                    list.AddRange(result);
+                }
+            }
+
+            return list.Any() ? list : null;
+        }
+
+        async Task<LawText?> GetNormativeSingle(string lei, string value, string startsMatch, LawContentType contentType)
+        {
+            var items = await GetNormativeAll(lei, contentType);
+
+            if (items != null)
+            {
+                if (value.ToLower() == "unico")
+                {
+                    value = "único";
+                }
+
+                foreach (var i in items)
+                {
+                    var text = i.Text.ToLower();
+                    startsMatch = startsMatch.ToLower();
+                    value = value.ToLower();
+
+                    string match = $"{startsMatch} {value}";
+                    if (text.StartsWith(match))
+                    {
+                        return i;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        //Verifica se a entrada é uma chave especial a ser considerada.
+        void CheckKey(ref string key)
+        {
+            if (key == specialKeys[0])
+            {
+                key = currentConstituicao;
+            }
         }
 
         /// <summary>Obtém todo o conteúdo da lei.</summary>
-        [HttpGet("{lei:int}")]
-        public async Task<ActionResult<JsonDocument>> Get(int lei)
+        [HttpGet("{lei}")]        
+        public async Task<ActionResult<JsonDocument>> GetLei(string lei)
         {
+            CheckKey(ref lei);
+
             string fileName = $"{filesPath}\\{lei}.json";
 
             if (!FileIO.Exists(fileName))
@@ -48,10 +118,70 @@ namespace LeisBrasileirasAPI.Controllers
             var json = await JsonDocument.ParseAsync(new FileStream(fileName, FileMode.Open, FileAccess.Read));
 
             return json != null ? json : BadRequest();
+        }        
+
+        /// <summary>Obtém as estatísticas</summary>
+        [HttpGet("{lei}/stats")]
+        public async Task<ActionResult<LawStats>> GetStats(string lei)
+        {
+            var parser = await Parse(lei);
+
+            if(parser == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(parser.Law.Stats);
         }
 
-        [HttpGet("{lei:int}/epigrafe")]
-        public async Task<ActionResult<LawText>> GetEpigrafe(int lei)
+        //--------------------------------------------------//
+        // $PARTE_PRELIMINAR                                //
+        //--------------------------------------------------//
+
+        /// <summary>Obtém todo o conteúdo da parte preliminar da lei.</summary>
+        [HttpGet("{lei}/preliminar")]
+        public async Task<ActionResult<IEnumerable<LawText>>> GetPreliminar(string lei)
+        {
+            var parser = await Parse(lei);
+
+            if(parser == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(parser.Law.PreliminaryPart);
+        }
+
+        /// <summary>Obtém todo o conteúdo da parte normativa da lei.</summary>
+        [HttpGet("{lei}/normativa")]
+        public async Task<ActionResult<IEnumerable<LawText>>> GetNormativa(string lei)
+        {
+            var parser = await Parse(lei);
+
+            if (parser == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(parser.Law.NormativePart);
+        }
+
+        /// <summary>Obtém todo o conteúdo da parte final da lei.</summary>
+        [HttpGet("{lei}/final")]
+        public async Task<ActionResult<IEnumerable<LawText>>> GetFinal(string lei)
+        {
+            var parser = await Parse(lei);
+
+            if (parser == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(parser.Law.FinalPart);
+        }
+
+        [HttpGet("{lei}/epigrafe")]
+        public async Task<ActionResult<LawText>> GetEpigrafe(string lei)
         {
             var parser = await Parse(lei);
 
@@ -65,8 +195,8 @@ namespace LeisBrasileirasAPI.Controllers
             return result != null ? Ok(result) : BadRequest();
         }
 
-        [HttpGet("{lei:int}/ementa")]
-        public async Task<ActionResult<LawText>> GetEmenta(int lei)
+        [HttpGet("{lei}/ementa")]
+        public async Task<ActionResult<LawText>> GetEmenta(string lei)
         {
             var parser = await Parse(lei);
 
@@ -80,8 +210,8 @@ namespace LeisBrasileirasAPI.Controllers
             return result != null ? Ok(result) : BadRequest();
         }
 
-        [HttpGet("{lei:int}/preambulo")]
-        public async Task<ActionResult<LawText>> GetPreambulo(int lei)
+        [HttpGet("{lei}/preambulo")]
+        public async Task<ActionResult<LawText>> GetPreambulo(string lei)
         {
             var parser = await Parse(lei);
 
@@ -95,185 +225,92 @@ namespace LeisBrasileirasAPI.Controllers
             return result != null ? Ok(result) : BadRequest();
         }
 
+        //--------------------------------------------------//
+        // $GET_ALL                                         //
+        //--------------------------------------------------//
+
         /// <summary>Obtém todas as ocorrências da divisão Parte na parte normativa da lei.</summary>
-        [HttpGet("{lei:int}/partes")]
-        public async Task<ActionResult<IEnumerable<LawText>>> GetAllPartes(int lei)
+        [HttpGet("{lei}/partes")]
+        public async Task<ActionResult<IEnumerable<LawText>>> GetAllPartes(string lei)
         {
-            return await GetNormativeAll(lei, LawContentType.Parte);
+            var result = await GetNormativeAll(lei, LawContentType.Parte);
+
+            return result == null ? NotFound() : Ok(result);
         }
 
         /// <summary>Obtém todas as ocorrências da divisão Livro na parte normativa da lei.</summary>
-        [HttpGet("{lei:int}/livros")]
-        public async Task<ActionResult<IEnumerable<LawText>>> GetAllLivros(int lei)
+        [HttpGet("{lei}/livros")]
+        public async Task<ActionResult<IEnumerable<LawText>>> GetAllLivros(string lei)
         {
-            return await GetNormativeAll(lei, LawContentType.Livro);
+            var result = await GetNormativeAll(lei, LawContentType.Livro);
+
+            return result == null ? NotFound() : Ok(result);
         }
 
-        //public async Task<ActionResult<IEnumerable<LawText>>> GetAllLivros(int lei, int parte) { }
-
         /// <summary>Obtém todas as ocorrências da divisão Titulo na parte normativa da lei.</summary>
-        [HttpGet("{lei:int}/titulos")]
-        public async Task<ActionResult<IEnumerable<LawText>>> GetAllTitulos(int lei)
+        [HttpGet("{lei}/titulos")]
+        public async Task<ActionResult<IEnumerable<LawText>>> GetAllTitulos(string lei)
         {
-            return await GetNormativeAll(lei, LawContentType.Titulo);
+            var result = await GetNormativeAll(lei, LawContentType.Titulo);
+
+            return result == null ? NotFound() : Ok(result);
         }
 
         /// <summary>Obtém todas as ocorrências da divisão Capítulo na parte normativa da lei.</summary>
-        [HttpGet("{lei:int}/capitulos")]
-        public async Task<ActionResult<IEnumerable<LawText>>> GetAllCapitulos(int lei)
+        [HttpGet("{lei}/capitulos")]
+        public async Task<ActionResult<IEnumerable<LawText>>> GetAllCapitulos(string lei)
         {
-            return await GetNormativeAll(lei, LawContentType.Capitulo);
+            var result = await GetNormativeAll(lei, LawContentType.Capitulo);
+
+            return result == null ? NotFound() : Ok(result);
         }
 
-        /// <summary>Obtém todas as ocorrências da divisão Artigos na parte normativa da lei.</summary>
-        [HttpGet("{lei:int}/artigos")]
-        public async Task<ActionResult<IEnumerable<LawText>>> GetAllArtigos(int lei)
+        /// <summary>Obtém todas as ocorrências dos Artigos na parte normativa da lei.</summary>
+        [HttpGet("{lei}/artigos")]
+        public async Task<ActionResult<IEnumerable<LawText>>> GetAllArtigos(string lei)
         {
-            var parser = await Parse(lei);
+            var result = await GetNormativeAll(lei, LawContentType.Artigo);
 
-            if(parser == null)
-            {
-                return NotFound();
-            }
-
-            List<LawText> list = new List<LawText>();
-            foreach(var item in parser.Law.NormativePart)
-            {
-                var result = item.GetAll(LawContentType.Artigo);
-
-                if (result.Any())
-                {
-                    list.AddRange(result);
-                }
-            }
-
-            return Ok(list);
+            return result == null ? NotFound() : Ok(result);
         }
 
+        //--------------------------------------------------//
+        // $GET_SINGLE                                      //
+        //--------------------------------------------------//
 
-        //[HttpGet("{lei:int}/titulo/{titulo:int}")]
-        //public ActionResult<LawText> GetTitulo(int lei, int titulo)
-        //{
-        //    if (titulo < 1)
-        //    {
-        //        return NotFound();
-        //    }
+        [HttpGet("{lei}/partes/{value}")]
+        public async Task<ActionResult<LawText>> GetParte(string lei, string value)
+        {
+            var parte = await GetNormativeSingle(lei, value, "Parte", LawContentType.Parte);
+            return parte != null ? Ok(parte) : NotFound();
+        }
 
-        //    string fileName = $"{filesPath}\\{lei}.json";
-        //    var parser = LawParser.Load(LawParserSaveType.Json, fileName);
+        [HttpGet("{lei}/livros/{value}")]
+        public async Task<ActionResult<LawText>> GetLivro(string lei, string value)
+        {
+            var livro = await GetNormativeSingle(lei, value, "Livro", LawContentType.Livro);
+            return livro != null ? Ok(livro) : NotFound();
+        }
 
-        //    if (parser == null)
-        //    {
-        //        return NotFound();
-        //    }
+        [HttpGet("{lei}/titulos/{value}")]
+        public async Task<ActionResult<LawText>> GetTitulo(string lei, string value)
+        {
+            var titulo = await GetNormativeSingle(lei, value, "Título", LawContentType.Titulo);
+            return titulo != null ? Ok(titulo) : NotFound();
+        }
 
-        //    var list = parser.Law.NormativePart.Where(x => x.ContentType == LawContentType.Titulo).ToList();
+        [HttpGet("{lei}/capitulos/{value}")]
+        public async Task<ActionResult<LawText>> GetCapitulo(string lei, string value)
+        {
+            var capitulo = await GetNormativeSingle(lei, value, "Capítulo", LawContentType.Capitulo);
+            return capitulo != null ? Ok(capitulo) : NotFound();
+        }
 
-        //    if (!list.Any())
-        //    {
-        //        foreach (var item in parser.Law.NormativePart)
-        //        {
-        //            var all = item.GetAll(LawContentType.Titulo);
-
-        //            if (all.Any())
-        //                list.AddRange(all);
-        //        }
-        //    }
-
-        //    return list[titulo - 1];
-        //}
-
-        //[HttpGet("{lei:int}/titulo/{titulo:int}/capitulos")]
-        //public ActionResult<List<LawText>> GetAllCapitulos(int lei, int titulo)
-        //{
-        //    if (titulo < 0)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    string fileName = $"{filesPath}\\{lei}.json";
-        //    var parser = LawParser.Load(LawParserSaveType.Json, fileName);
-
-        //    if (parser == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    //Considerar que uma lei possa não ter títulos como a LEI COMPLEMENTAR Nº 123, DE 14 DE DEZEMBRO DE 2006            
-        //    if (titulo == 0)
-        //    {
-        //        var list = parser.Law.NormativePart.Where(x => x.ContentType == LawContentType.Capitulo).ToList();
-
-        //        if (!list.Any())
-        //        {
-        //            foreach (var item in parser.Law.NormativePart)
-        //            {
-        //                var all = item.GetAll(LawContentType.Capitulo);
-
-        //                if (all.Any())
-        //                    list.AddRange(all);
-        //            }
-        //        }
-
-        //        return Ok(list);
-        //    }
-        //    else
-        //    {
-        //        var t = GetTitulo(lei, titulo).Value;
-
-        //        if (t == null)
-        //        {
-        //            return NotFound();
-        //        }
-
-        //        return t.GetAll(LawContentType.Capitulo);
-        //    }
-        //}
-
-        //[HttpGet("{lei:int}/titulo/{titulo:int}/capitulo/{capitulo:int}")]
-        //public ActionResult<LawText> GetCapitulo(int lei, int titulo, int capitulo)
-        //{
-        //    if (titulo < 0)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    string fileName = $"{filesPath}\\{lei}.json";
-        //    var parser = LawParser.Load(LawParserSaveType.Json, fileName);
-
-        //    if (parser == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    if (titulo == 0)
-        //    {
-        //        var list = parser.Law.NormativePart.Where(x => x.ContentType == LawContentType.Capitulo).ToList();
-
-        //        if (!list.Any())
-        //        {
-        //            foreach (var item in parser.Law.NormativePart)
-        //            {
-        //                var all = item.GetAll(LawContentType.Capitulo);
-
-        //                if (all.Any())
-        //                    list.AddRange(all);
-        //            }
-        //        }
-
-        //        return list[capitulo - 1];
-        //    }
-        //    else
-        //    {
-        //        var t = GetTitulo(lei, titulo).Value;
-
-        //        if (t == null)
-        //        {
-        //            return NotFound();
-        //        }
-
-        //        return t.GetAll(LawContentType.Capitulo)[capitulo - 1];
-        //    }
-        //}
+        [HttpGet("{lei}/artigos/{value}")]
+        public async Task<ActionResult<LawText>> GetArtigo(string lei, string value)
+        {
+            var artigo = await GetNormativeSingle(lei, value, "Art.", LawContentType.Artigo);
+            return artigo != null ? Ok(artigo) : NotFound();
+        }
     }
 }

@@ -1,4 +1,19 @@
 {
+  "Stats": {
+    "Partes": 0,
+    "Livros": 0,
+    "Titulos": 9,
+    "Capitulos": 28,
+    "Secoes": 39,
+    "SubSecoes": 12,
+    "Artigos": 263,
+    "Paragrafos": 296,
+    "Incisos": 244,
+    "Alineas": 61,
+    "Outros": 96,
+    "Linhas": 1048,
+    "Palavras": 28204
+  },
   "PreliminaryPart": [
     {
       "Text": "LEI N\u00BA 8.112, DE 11 DE DEZEMBRO DE 1990",

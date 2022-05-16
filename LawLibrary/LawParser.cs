@@ -50,6 +50,11 @@
             this.textFile = file;
         }
 
+        private static int GerWordsCount(ref string text)
+        {
+            return text.Split(' ').Length;
+        }
+
         /// <summary>
         /// Adiciona uma divisão da lei denominada Parte.
         /// </summary>
@@ -71,6 +76,7 @@
             };
 
             law.NormativePart.Add(currentParte);
+            law.Stats.Partes++;
         }
 
         /// <summary>
@@ -100,6 +106,10 @@
             {
                 law.NormativePart.Add(currentLivro);
             }
+
+            law.Stats.Livros++;
+            law.Stats.Linhas++;
+            law.Stats.Palavras += GerWordsCount(ref text);
         }
 
         /// <summary>
@@ -128,6 +138,10 @@
             {
                 law.NormativePart.Add(currentTitulo);
             }
+
+            law.Stats.Titulos++;
+            law.Stats.Linhas++;
+            law.Stats.Palavras += GerWordsCount(ref text);
         }
 
         /// <summary>
@@ -155,6 +169,10 @@
             {
                 law.NormativePart.Add(currentCapitulo);
             }
+
+            law.Stats.Capitulos++;
+            law.Stats.Linhas++;
+            law.Stats.Palavras += GerWordsCount(ref text);
         }
 
         /// <summary>
@@ -177,6 +195,18 @@
             {
                 currentCapitulo.Add(currentSecao);
             }
+            else if (currentTitulo != null)
+            {
+                currentTitulo.Add(currentSecao);
+            }
+            else
+            {
+                law.NormativePart.Add(currentSecao);
+            }
+
+            law.Stats.Secoes++;
+            law.Stats.Linhas++;
+            law.Stats.Palavras += GerWordsCount(ref text);
         }
 
         /// <summary>
@@ -198,6 +228,10 @@
             {
                 currentSecao.Add(currentSubSecao);
             }
+
+            law.Stats.SubSecoes++;
+            law.Stats.Linhas++;
+            law.Stats.Palavras += GerWordsCount(ref text);
         }
 
         /// <summary>
@@ -226,6 +260,14 @@
             {
                 currentCapitulo.Add(currentArtigo);
             }
+            else if (currentTitulo != null)
+            {
+                currentTitulo.Add(currentArtigo);
+            }
+
+            law.Stats.Artigos++;
+            law.Stats.Linhas++;
+            law.Stats.Palavras += GerWordsCount(ref text);
         }
 
         /// <summary>
@@ -245,6 +287,10 @@
             {
                 currentArtigo.Add(currentParagrafo);
             }
+
+            law.Stats.Paragrafos++;
+            law.Stats.Linhas++;
+            law.Stats.Palavras += GerWordsCount(ref text);
         }
 
         /// <summary>
@@ -262,6 +308,10 @@
             {
                 currentArtigo.Add(currentInciso);
             }
+
+            law.Stats.Incisos++;
+            law.Stats.Linhas++;
+            law.Stats.Palavras += GerWordsCount(ref text);
         }
 
         /// <summary>
@@ -283,6 +333,10 @@
             {
                 currentArtigo.Add(alinea);
             }
+
+            law.Stats.Alineas++;
+            law.Stats.Linhas++;
+            law.Stats.Palavras += GerWordsCount(ref text);
         }
 
         /// <summary>
@@ -335,6 +389,10 @@
             {
                 law.NormativePart.Add(texto);
             }
+
+            law.Stats.Outros++;
+            law.Stats.Linhas++;
+            law.Stats.Palavras += GerWordsCount(ref text);
         }
 
         /// <summary>
